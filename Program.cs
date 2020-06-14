@@ -93,21 +93,20 @@ namespace MailMerge
             {
                 foreach (ExcelCell cell in row.AllocatedCells)
                 {
-                    if (String.Equals(cell.Value.ToString(), "NUME".ToString()))
+                    if (String.Equals(cell.Value.ToString().ToUpper(), "NUME".ToString()))
                         continue;
-                    elements.Rows.Add(cell.Value.ToString());
+                    elements.Rows.Add(cell.Value.ToString().ToUpper());
                 }
             }
         }
 
         private static string selectFolder()
         {
-            CommonOpenFileDialog dialog;
-            
-            dialog = new CommonOpenFileDialog();
-
-            dialog.InitialDirectory = "C:\\Users";
-            dialog.IsFolderPicker = true;
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog
+            {
+                InitialDirectory = "C:\\Users",
+                IsFolderPicker = true
+            };
 
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 return dialog.FileName;
