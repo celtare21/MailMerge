@@ -93,15 +93,17 @@ namespace MailMerge
                 oldpath = path;
                 path = folder + "/Diploma_Logiscool_" + dataRow.ItemArray[0] + ".pdf";
 
-                if (path == oldpath)
-                    continue;
+                if (path != oldpath)
+                {
+                    document = template.Clone();
+                    document.MailMerge.Execute(dataRow);
 
-                document = template.Clone();
-                document.MailMerge.Execute(dataRow);
+                    pdfDocument = converter.ConvertToPDF(document);
+                    pdfDocument.Save(path);
+                    pdfDocument.Close(true);
 
-                pdfDocument = converter.ConvertToPDF(document);
-                pdfDocument.Save(path);
-                pdfDocument.Close(true);
+                    document.Dispose();
+                }
 
                 try
                 {
@@ -132,8 +134,6 @@ namespace MailMerge
                     MessageBox.Show("Couldn't connect to the email address!");
                     Environment.Exit(0);
                 }
-
-                document.Dispose();
             }
 
             MessageBox.Show("Done!");
@@ -164,6 +164,9 @@ namespace MailMerge
             {
                 foreach (ExcelCell cell in row.AllocatedCells)
                 {
+                    if (cell.ValueType == CellValueType.Null)
+                        continue;
+
                     scell = cell.Value.ToString();
 
                     if (String.Equals(scell.ToUpper(), "NUME") || String.Equals(scell.ToUpper(), "EMAIL"))
