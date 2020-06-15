@@ -28,6 +28,7 @@ namespace MailMerge
             WordDocument template;
             List<string> emails;
             string folder, email, pass;
+            string path = null, oldpath;
             int i = 0;
 
             SpreadsheetInfo.SetLicense("FREE-LIMITED-KEY");
@@ -81,34 +82,56 @@ namespace MailMerge
                 EnableSsl = true,
             };
 
+            Console.Clear();
+
             foreach (DataRow dataRow in table.Rows)
             {
-                MailMessage mailMessage;
+                MailMessage mailMessage = null;
                 Attachment attachment;
                 WordDocument document;
-                string path;
+
+                oldpath = path;
+                path = folder + "/Diploma_Logiscool_" + dataRow.ItemArray[0] + ".pdf";
+
+                if (path == oldpath)
+                    continue;
 
                 document = template.Clone();
                 document.MailMerge.Execute(dataRow);
-
-                path = folder + "/Diploma_Logiscool_" + dataRow.ItemArray[0].ToString() + ".pdf";
 
                 pdfDocument = converter.ConvertToPDF(document);
                 pdfDocument.Save(path);
                 pdfDocument.Close(true);
 
-                mailMessage = new MailMessage
+                try
                 {
-                    From = new MailAddress(email),
-                    Subject = "Test",
-                    Body = "Acesta este un test",
-                };
+                    mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(email),
+                        Subject = "Test",
+                        Body = "Acesta este un test",
+                    };
+                }
+                catch (FormatException)
+                {
+                    MessageBox.Show("Invalid email address!");
+                    Environment.Exit(0);
+                }
 
+                Console.WriteLine(dataRow.ItemArray[0] + " " + emails[i]);
                 attachment = new Attachment(path, MediaTypeNames.Application.Pdf);
                 mailMessage.Attachments.Add(attachment);
                 mailMessage.To.Add(emails[i++]);
 
-                smtpClient.Send(mailMessage);
+                try
+                {
+                    smtpClient.Send(mailMessage);
+                }
+                catch (SmtpException)
+                {
+                    MessageBox.Show("Couldn't connect to the email address!");
+                    Environment.Exit(0);
+                }
 
                 document.Dispose();
             }
@@ -120,6 +143,7 @@ namespace MailMerge
         {
             ExcelWorksheet worksheet;
             ExcelFile loadedFile = null;
+            string scell;
             bool wrow = false;
 
             MessageBox.Show("Choose the database:");
@@ -140,13 +164,15 @@ namespace MailMerge
             {
                 foreach (ExcelCell cell in row.AllocatedCells)
                 {
-                    if (String.Equals(cell.Value.ToString().ToUpper(), "NUME".ToString()) || String.Equals(cell.Value.ToString().ToUpper(), "EMAIL".ToString()))
+                    scell = cell.Value.ToString();
+
+                    if (String.Equals(scell.ToUpper(), "NUME") || String.Equals(scell.ToUpper(), "EMAIL"))
                         continue;
 
                     if (!wrow)
-                        elements.Rows.Add(cell.Value.ToString().ToUpper());
+                        elements.Rows.Add(scell.ToUpper());
                     else
-                        emails.Add(cell.Value.ToString());
+                        emails.Add(scell);
 
                     wrow = !wrow;
                 }
@@ -155,55 +181,40 @@ namespace MailMerge
 
         private static string selectFolder()
         {
-            CommonOpenFileDialog dialog = new CommonOpenFileDialog
+            CommonOpenFileDialog openFolderDialog = new CommonOpenFileDialog
             {
                 InitialDirectory = "C:\\Users",
                 IsFolderPicker = true
             };
 
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-                return dialog.FileName;
+            if (openFolderDialog.ShowDialog() == CommonFileDialogResult.Ok)
+                return openFolderDialog.FileName;
 
             return null;
         }
 
         static private string loadFile(bool doc)
         {
-            OpenFileDialog openFileDialog;
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            openFileDialog.CheckFileExists = true;
+            openFileDialog.CheckPathExists = true;
+            openFileDialog.RestoreDirectory = true;
+            openFileDialog.FilterIndex = 2;
+            openFileDialog.ShowReadOnly = true;
 
             if (doc)
             {
-                openFileDialog = new OpenFileDialog
-                {
-                    Title = "Browse Doc Files",
+                openFileDialog.Title = "Browse Doc Files";
+                openFileDialog.DefaultExt = "doc";
+                openFileDialog.Filter = "Word File (.docx ,.doc)|*.docx;*.doc";
 
-                    CheckFileExists = true,
-                    CheckPathExists = true,
-                    RestoreDirectory = true,
-
-                    DefaultExt = "doc",
-                    Filter = "Word File (.docx ,.doc)|*.docx;*.doc",
-                    FilterIndex = 2,
-
-                    ShowReadOnly = true
-                };
             }
             else
             {
-                openFileDialog = new OpenFileDialog
-                {
-                    Title = "Browse Excel Files",
-
-                    CheckFileExists = true,
-                    CheckPathExists = true,
-                    RestoreDirectory = true,
-
-                    DefaultExt = "xlsx",
-                    Filter = "xlsx files (*.xlsx)|*.xlsx",
-                    FilterIndex = 2,
-
-                    ShowReadOnly = true
-                };
+                openFileDialog.Title = "Browse Excel Files";
+                openFileDialog.DefaultExt = "xlsx";
+                openFileDialog.Filter = "xlsx files (*.xlsx)|*.xlsx";
             }
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
