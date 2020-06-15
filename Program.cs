@@ -21,7 +21,7 @@ namespace MailMerge
         static void Main(string[] args)
         {
             SmtpClient smtpClient;
-            DataTable table;
+            DataTable names;
             DocToPDFConverter converter;
             PdfDocument pdfDocument;
             Stream docStream = null;
@@ -45,9 +45,9 @@ namespace MailMerge
                 pass = Console.ReadLine();
             } while (pass == "");
 
-            table = new DataTable();
+            names = new DataTable();
             emails = new List<string>();
-            loadData(ref table, ref emails);
+            loadData(ref names, ref emails);
 
             MessageBox.Show("Load Template Doc:");
             try
@@ -84,7 +84,7 @@ namespace MailMerge
 
             Console.Clear();
 
-            foreach (DataRow dataRow in table.Rows)
+            foreach (DataRow dataRow in names.Rows)
             {
                 MailMessage mailMessage = null;
                 Attachment attachment;
@@ -139,7 +139,7 @@ namespace MailMerge
             MessageBox.Show("Done!");
         }
 
-        private static void loadData(ref DataTable elements, ref List<string> emails)
+        private static void loadData(ref DataTable names, ref List<string> emails)
         {
             ExcelWorksheet worksheet;
             ExcelFile loadedFile = null;
@@ -157,7 +157,7 @@ namespace MailMerge
                 Environment.Exit(0);
             }
 
-            elements.Columns.Add("NUME", typeof(string));
+            names.Columns.Add("NUME", typeof(string));
             worksheet = loadedFile.Worksheets[0];
 
             foreach (ExcelRow row in worksheet.Rows)
@@ -173,7 +173,7 @@ namespace MailMerge
                         continue;
 
                     if (!wrow)
-                        elements.Rows.Add(scell.ToUpper());
+                        names.Rows.Add(scell.ToUpper());
                     else
                         emails.Add(scell);
 
