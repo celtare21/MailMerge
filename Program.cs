@@ -12,11 +12,14 @@ using System.Collections.Generic;
 using System.Net.Mail;
 using System.Net;
 using System.Net.Mime;
+using System.ComponentModel;
 
 namespace MailMerge
 {
     class Program
     {
+        private static bool mailSending = false;
+
         [STAThread]
         static void Main(string[] args)
         {
@@ -81,6 +84,7 @@ namespace MailMerge
                 Credentials = new NetworkCredential(email, pass),
                 EnableSsl = true,
             };
+            smtpClient.SendCompleted += new SendCompletedEventHandler(SendCompletedCallback);
 
             Console.Clear();
 
@@ -123,9 +127,13 @@ namespace MailMerge
                 mailMessage.Attachments.Add(attachment);
                 mailMessage.To.Add(emails[i++]);
 
+                while (mailSending) ;
+
+                mailSending = true;
+
                 try
                 {
-                    smtpClient.Send(mailMessage);
+                    smtpClient.SendAsync(mailMessage, null);
                 }
                 catch (SmtpException)
                 {
@@ -136,8 +144,11 @@ namespace MailMerge
                 document.Dispose();
             }
 
+            while (mailSending) ;
+
             MessageBox.Show("Done!");
         }
+
 
         private static void loadData(ref DataTable elements, ref List<string> emails)
         {
@@ -150,7 +161,7 @@ namespace MailMerge
             try
             {
                 loadedFile = ExcelFile.Load(loadFile(false));
-            } 
+            }
             catch (ArgumentNullException)
             {
                 MessageBox.Show("No file loaded! Exiting!");
@@ -221,6 +232,11 @@ namespace MailMerge
                 return openFileDialog.FileName.ToString();
 
             return null;
+        }
+
+        private static void SendCompletedCallback(object sender, AsyncCompletedEventArgs e)
+        {
+            mailSending = false;
         }
     }
 }
