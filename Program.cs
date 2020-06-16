@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Net.Mail;
 using System.Net;
 using System.Net.Mime;
+using System.Security;
 
 namespace MailMerge
 {
@@ -25,13 +26,16 @@ namespace MailMerge
             DocToPDFConverter converter;
             PdfDocument pdfDocument;
             Stream docStream = null;
-            WordDocument template;
+            StreamReader reader;
+            WordDocument template, body;
             List<string> emails;
-            string folder, email, pass;
+            string folder, email, mailBody;
+            SecureString pass;
             string path = null, oldpath;
             int i = 0;
 
             SpreadsheetInfo.SetLicense("FREE-LIMITED-KEY");
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("MjcyNDY4QDMxMzgyZTMxMmUzMGZXNjBmNHF4TU51RndrbmJ4MjcyMnJMV3ZlYlk1ekZVc1lWcGlqaDFhQm89;MjcyNDY5QDMxMzgyZTMxMmUzMEFGWXNRajhzQld0UERPeVpObzhCTTRyUm15YmVHUTZ3Ny9MVFJQT05WWHM9;MjcyNDcwQDMxMzgyZTMxMmUzMExOeVBJVmFUTlhXaG1FM1lkVjZpRUhJSkV0bExGTkxtc3NyZC9WV2dHMUU9;MjcyNDcxQDMxMzgyZTMxMmUzMFBjZ0dNVHBZYnhpSUFrQzZSd3BNVm82WHRUc1c1VjhlSEV2ak0xeUpDakU9;MjcyNDcyQDMxMzgyZTMxMmUzMEZTYWNPR1ZPejdvQ1JzemRvSFBvZThjZ1lzNUtZYlVCelQ3TjFCOU9CNFk9;MjcyNDczQDMxMzgyZTMxMmUzMEV3cXlVVmsxcGN3WHc3K2YwZDdqUjc1MnFMbDFsRUF0V1pBWDhUaENRenM9;MjcyNDc0QDMxMzgyZTMxMmUzMFE3YjFIazl3WTM5WGx2T2QrVVUvL1B0aGxkT3k1aDMvV2lzZXRXQ3NMeG89;MjcyNDc1QDMxMzgyZTMxMmUzMGFwLytWOWNxckpoYW1mK1pPQnl4N1RBbmM5UFJoU2dzM1dNQVFlb3ZlaTQ9;MjcyNDc2QDMxMzgyZTMxMmUzMFd2WWprcm0xOElBTlg0VGMyT0ViZVBlMWk1Uzl4M2tDNkVkTGJ1T1AxMTQ9;NT8mJyc2IWhia31ifWN9ZmVoYmF8YGJ8ampqanNiYmlmamlmanMDHmgwNj8nMiE2YWITND4yOj99MDw+;MjcyNDc3QDMxMzgyZTMxMmUzMENUVHFZTHU3NENEenRCUkRaSW1KNVNMd3ZZOE9qMlpRZWs5WVZmazdkYjQ9");
 
             Console.WriteLine("Email:");
             do
@@ -42,8 +46,8 @@ namespace MailMerge
             Console.WriteLine("Password:");
             do
             {
-                pass = Console.ReadLine();
-            } while (pass == "");
+                pass = GetPassword();
+            } while (pass.Length == 0);
 
             names = new DataTable();
             emails = new List<string>();
@@ -62,6 +66,30 @@ namespace MailMerge
             template = new WordDocument(docStream, FormatType.Docx);
             docStream.Dispose();
 
+            MessageBox.Show("Load Email Body:");
+            try
+            {
+                docStream = File.OpenRead(loadFile(true));
+            }
+            catch (ArgumentNullException)
+            {
+                MessageBox.Show("No file loaded! Exiting!");
+                Environment.Exit(0);
+            }
+            body = new WordDocument(docStream, FormatType.Doc);
+            docStream.Dispose();
+
+            docStream = new MemoryStream();
+
+            body.SaveOptions.HtmlExportOmitXmlDeclaration = true;
+            body.Save(docStream, FormatType.Html);
+            body.Dispose();
+
+            docStream.Position = 0;
+            reader = new StreamReader(docStream);
+            mailBody = reader.ReadToEnd();
+            docStream.Dispose();
+            
             converter = new DocToPDFConverter();
             converter.Settings.EnableFastRendering = true;
             converter.Settings.EmbedFonts = true;
@@ -91,7 +119,7 @@ namespace MailMerge
                 WordDocument document;
 
                 oldpath = path;
-                path = folder + "/Diploma_Logiscool_" + dataRow.ItemArray[0] + ".pdf";
+                path = folder + "\\Diploma_Logiscool_" + dataRow.ItemArray[0] + ".pdf";
 
                 if (path != oldpath)
                 {
@@ -110,8 +138,9 @@ namespace MailMerge
                     mailMessage = new MailMessage
                     {
                         From = new MailAddress(email),
-                        Subject = "Test",
-                        Body = "Acesta este un test",
+                        Subject = "Diploma Logiscool",
+                        Body = mailBody,
+                        IsBodyHtml = true,
                     };
                 }
                 catch (FormatException)
@@ -134,9 +163,40 @@ namespace MailMerge
                     MessageBox.Show("Couldn't connect to the email address!");
                     Environment.Exit(0);
                 }
+
+                Console.WriteLine("...Email sent!");
             }
 
             MessageBox.Show("Done!");
+        }
+
+        private static SecureString GetPassword()
+        {
+            SecureString pwd = new SecureString();
+
+            while (true)
+            {
+                ConsoleKeyInfo i = Console.ReadKey(true);
+                if (i.Key == ConsoleKey.Enter)
+                {
+                    break;
+                }
+                else if (i.Key == ConsoleKey.Backspace)
+                {
+                    if (pwd.Length > 0)
+                    {
+                        pwd.RemoveAt(pwd.Length - 1);
+                        Console.Write("\b \b");
+                    }
+                }
+                else if (i.KeyChar != '\u0000')
+                {
+                    pwd.AppendChar(i.KeyChar);
+                    Console.Write("*");
+                }
+            }
+
+            return pwd;
         }
 
         private static void loadData(ref DataTable names, ref List<string> emails)
@@ -150,10 +210,13 @@ namespace MailMerge
             try
             {
                 loadedFile = ExcelFile.Load(loadFile(false));
-            } 
-            catch (ArgumentNullException)
+            }
+            catch (Exception ex)
             {
-                MessageBox.Show("No file loaded! Exiting!");
+                if (ex is ArgumentNullException)
+                    MessageBox.Show("No file loaded! Exiting!");
+                else if (ex is FreeLimitReachedException)
+                    MessageBox.Show("More than 150 rows loaded! Exiting!");
                 Environment.Exit(0);
             }
 
