@@ -152,7 +152,15 @@ namespace MailMerge
                 Console.WriteLine(dataRow.ItemArray[0] + " " + emails[i]);
                 attachment = new Attachment(path, MediaTypeNames.Application.Pdf);
                 mailMessage.Attachments.Add(attachment);
-                mailMessage.To.Add(emails[i++]);
+                try
+                {
+                    mailMessage.To.Add(emails[i]);
+                }
+                catch (FormatException)
+                {
+                    MessageBox.Show("Invalid email address in the tabel:" + emails[i]);
+                    Environment.Exit(0);
+                }
 
                 try
                 {
