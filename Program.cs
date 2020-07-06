@@ -22,7 +22,7 @@ namespace MailMerge
         static void Main(string[] args)
         {
             SmtpClient smtpClient;
-            DataTable names;
+            DataTable names, trainer;
             DocToPDFConverter converter;
             PdfDocument pdfDocument;
             Stream docStream = null;
@@ -32,7 +32,7 @@ namespace MailMerge
             string folder, email, mailBody;
             SecureString pass;
             string path = null, oldpath;
-            int i = 0;
+            int i;
 
             SpreadsheetInfo.SetLicense("FREE-LIMITED-KEY");
             Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("MjcyNDY4QDMxMzgyZTMxMmUzMGZXNjBmNHF4TU51RndrbmJ4MjcyMnJMV3ZlYlk1ekZVc1lWcGlqaDFhQm89;MjcyNDY5QDMxMzgyZTMxMmUzMEFGWXNRajhzQld0UERPeVpObzhCTTRyUm15YmVHUTZ3Ny9MVFJQT05WWHM9;MjcyNDcwQDMxMzgyZTMxMmUzMExOeVBJVmFUTlhXaG1FM1lkVjZpRUhJSkV0bExGTkxtc3NyZC9WV2dHMUU9;MjcyNDcxQDMxMzgyZTMxMmUzMFBjZ0dNVHBZYnhpSUFrQzZSd3BNVm82WHRUc1c1VjhlSEV2ak0xeUpDakU9;MjcyNDcyQDMxMzgyZTMxMmUzMEZTYWNPR1ZPejdvQ1JzemRvSFBvZThjZ1lzNUtZYlVCelQ3TjFCOU9CNFk9;MjcyNDczQDMxMzgyZTMxMmUzMEV3cXlVVmsxcGN3WHc3K2YwZDdqUjc1MnFMbDFsRUF0V1pBWDhUaENRenM9;MjcyNDc0QDMxMzgyZTMxMmUzMFE3YjFIazl3WTM5WGx2T2QrVVUvL1B0aGxkT3k1aDMvV2lzZXRXQ3NMeG89;MjcyNDc1QDMxMzgyZTMxMmUzMGFwLytWOWNxckpoYW1mK1pPQnl4N1RBbmM5UFJoU2dzM1dNQVFlb3ZlaTQ9;MjcyNDc2QDMxMzgyZTMxMmUzMFd2WWprcm0xOElBTlg0VGMyT0ViZVBlMWk1Uzl4M2tDNkVkTGJ1T1AxMTQ9;NT8mJyc2IWhia31ifWN9ZmVoYmF8YGJ8ampqanNiYmlmamlmanMDHmgwNj8nMiE2YWITND4yOj99MDw+;MjcyNDc3QDMxMzgyZTMxMmUzMENUVHFZTHU3NENEenRCUkRaSW1KNVNMd3ZZOE9qMlpRZWs5WVZmazdkYjQ9");
@@ -51,7 +51,8 @@ namespace MailMerge
 
             names = new DataTable();
             emails = new List<string>();
-            loadData(ref names, ref emails);
+            trainer = new DataTable();
+            loadData(ref names, ref emails, ref trainer);
 
             MessageBox.Show("Load Template Doc:");
             try
@@ -112,19 +113,29 @@ namespace MailMerge
 
             Console.Clear();
 
-            foreach (DataRow dataRow in names.Rows)
+            for (i = 0; i < names.Rows.Count; i++)
             {
                 MailMessage mailMessage = null;
                 Attachment attachment;
                 WordDocument document;
+                DataRow _name;
+                DataRow _trainer;
+                string[] fieldNames = { "NUME", "TRAINER" };
+                string[] fieldValues = new string[fieldNames.Length];
+
+                _name = names.Rows[i];
+                _trainer = trainer.Rows[i];
+
+                fieldValues[0] = _name.ItemArray[0].ToString();
+                fieldValues[1] = _trainer.ItemArray[0].ToString();
 
                 oldpath = path;
-                path = folder + "\\Diploma_Logiscool_" + dataRow.ItemArray[0] + ".pdf";
+                path = folder + "\\Diploma_Engleza_" + _name.ItemArray[0] + ".pdf";
 
                 if (path != oldpath)
                 {
                     document = template.Clone();
-                    document.MailMerge.Execute(dataRow);
+                    document.MailMerge.Execute(fieldNames, fieldValues);
 
                     pdfDocument = converter.ConvertToPDF(document);
                     pdfDocument.Save(path);
@@ -138,7 +149,7 @@ namespace MailMerge
                     mailMessage = new MailMessage
                     {
                         From = new MailAddress(email),
-                        Subject = "Diploma Logiscool",
+                        Subject = "Diploma participare curs engleză",
                         Body = mailBody,
                         IsBodyHtml = true,
                     };
@@ -149,10 +160,18 @@ namespace MailMerge
                     Environment.Exit(0);
                 }
 
-                Console.WriteLine(dataRow.ItemArray[0] + " " + emails[i]);
+                Console.WriteLine(_name.ItemArray[0] + " " + emails[i]);
                 attachment = new Attachment(path, MediaTypeNames.Application.Pdf);
                 mailMessage.Attachments.Add(attachment);
-                mailMessage.To.Add(emails[i++]);
+                try
+                {
+                    mailMessage.To.Add(emails[i]);
+                }
+                catch (FormatException)
+                {
+                    MessageBox.Show("Invalid email address in the tabel:" + emails[i]);
+                    Environment.Exit(0);
+                }
 
                 try
                 {
@@ -199,12 +218,12 @@ namespace MailMerge
             return pwd;
         }
 
-        private static void loadData(ref DataTable names, ref List<string> emails)
+        private static void loadData(ref DataTable names, ref List<string> emails, ref DataTable trainer)
         {
             ExcelWorksheet worksheet;
             ExcelFile loadedFile = null;
             string scell;
-            bool wrow = false;
+            int i = 0;
 
             MessageBox.Show("Choose the database:");
             try
@@ -221,6 +240,7 @@ namespace MailMerge
             }
 
             names.Columns.Add("NUME", typeof(string));
+            trainer.Columns.Add("TRAINER", typeof(string));
             worksheet = loadedFile.Worksheets[0];
 
             foreach (ExcelRow row in worksheet.Rows)
@@ -232,15 +252,26 @@ namespace MailMerge
 
                     scell = cell.Value.ToString();
 
-                    if (String.Equals(scell.ToUpper(), "NUME") || String.Equals(scell.ToUpper(), "EMAIL"))
+                    if (String.Equals(scell.ToUpper(), "NUME") || String.Equals(scell.ToUpper(), "EMAIL") || String.Equals(scell.ToUpper(), "TRAINER"))
                         continue;
 
-                    if (!wrow)
-                        names.Rows.Add(scell.ToUpper());
-                    else
-                        emails.Add(scell);
+                    switch (i)
+                    {
+                        case 0:
+                            names.Rows.Add(scell.ToUpper());
+                            break;
+                        case 1:
+                            emails.Add(scell);
+                            break;
+                        case 2:
+                            trainer.Rows.Add(scell.ToUpper());
+                            break;
+                        default:
+                            break;
+                    }
 
-                    wrow = !wrow;
+                    if (++i == 3)
+                        i = 0;
                 }
             }
         }
@@ -259,7 +290,7 @@ namespace MailMerge
             return null;
         }
 
-        static private string loadFile(bool doc)
+        private static string loadFile(bool doc)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
 
