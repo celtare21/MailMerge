@@ -173,6 +173,8 @@ namespace MailMerge
                     Environment.Exit(0);
                 }
 
+                System.Threading.Thread.Sleep(5000);
+
                 try
                 {
                     smtpClient.Send(mailMessage);
