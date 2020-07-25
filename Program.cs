@@ -1,18 +1,18 @@
-﻿using Syncfusion.DocIO;
+﻿using GemBox.Spreadsheet;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using Syncfusion.DocIO;
 using Syncfusion.DocIO.DLS;
 using Syncfusion.DocToPDFConverter;
 using Syncfusion.Pdf;
-using GemBox.Spreadsheet;
 using System;
-using System.IO;
-using System.Windows.Forms;
-using System.Data;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Collections.Generic;
-using System.Net.Mail;
+using System.Data;
+using System.IO;
 using System.Net;
+using System.Net.Mail;
 using System.Net.Mime;
 using System.Security;
+using System.Windows.Forms;
 
 namespace MailMerge
 {
@@ -41,7 +41,7 @@ namespace MailMerge
             do
             {
                 email = Console.ReadLine();
-            } while (email == "");
+            } while (email == string.Empty);
 
             Console.WriteLine("Password:");
             do
@@ -90,7 +90,7 @@ namespace MailMerge
             reader = new StreamReader(docStream);
             mailBody = reader.ReadToEnd();
             docStream.Dispose();
-            
+
             converter = new DocToPDFConverter();
             converter.Settings.EnableFastRendering = true;
             converter.Settings.EmbedFonts = true;
@@ -130,9 +130,9 @@ namespace MailMerge
                 fieldValues[1] = _trainer.ItemArray[0].ToString();
 
                 oldpath = path;
-                path = folder + "\\Diploma_Engleza_" + _name.ItemArray[0] + ".pdf";
+                path = folder + $"\\Diploma_Engleza_{_name.ItemArray[0]}.pdf";
 
-                if (path != oldpath)
+                if (string.Compare(path, oldpath) != 0)
                 {
                     document = template.Clone();
                     document.MailMerge.Execute(fieldNames, fieldValues);
@@ -160,7 +160,7 @@ namespace MailMerge
                     Environment.Exit(0);
                 }
 
-                Console.WriteLine(_name.ItemArray[0] + " " + emails[i]);
+                Console.WriteLine($"{_name.ItemArray[0]} {emails[i]}");
                 attachment = new Attachment(path, MediaTypeNames.Application.Pdf);
                 mailMessage.Attachments.Add(attachment);
                 try
@@ -169,7 +169,7 @@ namespace MailMerge
                 }
                 catch (FormatException)
                 {
-                    MessageBox.Show("Invalid email address in the tabel:" + emails[i]);
+                    MessageBox.Show($"Invalid email address in the tabel: {emails[i]}");
                     Environment.Exit(0);
                 }
 
