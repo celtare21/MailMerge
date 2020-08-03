@@ -173,7 +173,7 @@ namespace MailMerge
                     Environment.Exit(0);
                 }
 
-                System.Threading.Thread.Sleep(5000);
+                System.Threading.Thread.Sleep(1500);
 
                 try
                 {
