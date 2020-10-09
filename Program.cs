@@ -175,6 +175,8 @@ namespace MailMerge
                 }
 
                 Console.WriteLine("...Email sent!");
+
+                ++i;
             }
 
             MessageBox.Show("Done!");
